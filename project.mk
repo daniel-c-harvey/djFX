@@ -2,11 +2,11 @@
 # Project Customization
 # #############################################################################
 
-PROJECT = hp303
+PROJECT = HP303
 
 UCSRC = 
 
-UCXXSRC = hp303.cpp
+UCXXSRC = hp303.cpp butterworth.cpp
 
 UINCDIR =
 
