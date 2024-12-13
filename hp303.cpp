@@ -7,7 +7,7 @@
 
 static float s_param_cutoff;
 static float s_param_resonance;
-static Butterworth<2> filter;
+static SaturatedButterworth<2> filter;
 
 void MODFX_INIT(uint32_t platform, uint32_t api)
 {
@@ -20,30 +20,16 @@ void MODFX_PROCESS(const float *main_xn, float *main_yn,
                    const float *sub_xn,  float *sub_yn,
                    uint32_t frames)
 {
-    NormalCoefficients coeff = filter.process_block(s_param_cutoff, s_param_resonance);
-    
-    // Reduced feedback with compensation for volume loss
-    const float fb_amount = s_param_resonance * 1.67f * 1.8f;
-    
-    // Volume compensation increases with resonance
-    const float vol_comp = 1.f + (fb_amount);  // Compensate for resonance-induced volume loss
-    
+    SaturatedParameters params = filter.prepare_parameters(s_param_cutoff, s_param_resonance);
+    NormalCoefficients coeff = filter.prepare_coefficients(params);    
+
     const float *in_ptr = main_xn;
     float *out_ptr = main_yn;
     
     for (uint32_t frame = 0; frame < frames; frame++)
     {        
-        filter.process_frame(coeff, in_ptr, out_ptr);
-        
-        // Apply saturation with drive that increases less with resonance
-        const float drive = 1.f + s_param_resonance * 1.67f * 1.2f;  // Reduced drive scaling
-        out_ptr[0] = tb303_tanh(out_ptr[0] * drive) * (1.f / drive);
-        out_ptr[1] = tb303_tanh(out_ptr[1] * drive) * (1.f / drive);
-        
-        // Apply volume compensation
-        out_ptr[0] *= vol_comp;
-        out_ptr[1] *= vol_comp;
-        
+        filter.process_frame(coeff, params, in_ptr, out_ptr);
+                
         // Advance pointers
         in_ptr += 2;
         out_ptr += 2;
@@ -52,12 +38,12 @@ void MODFX_PROCESS(const float *main_xn, float *main_yn,
 
 float rescale_cutoff(float p_value)
 {
-    return fasterpowf(p_value, 4.0f);
+    return fasterpowf(p_value, 11.0f);
 }
 
 float rescale_resonance(float p_value)
 {
-    return fasterpowf(p_value, 1.2f);
+    return fasterpow2f(p_value);
 }
 
 void MODFX_PARAM(uint8_t index, int32_t value)
