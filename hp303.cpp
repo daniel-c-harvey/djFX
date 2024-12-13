@@ -31,7 +31,8 @@ void MODFX_PROCESS(const float *main_xn, float *main_yn,
     const float *in_ptr = main_xn;
     float *out_ptr = main_yn;
     
-    for (uint32_t frame = 0; frame < frames; frame++) {
+    for (uint32_t frame = 0; frame < frames; frame++)
+    {        
         filter.process_frame(coeff, in_ptr, out_ptr);
         
         // Apply saturation with drive that increases less with resonance
@@ -49,15 +50,25 @@ void MODFX_PROCESS(const float *main_xn, float *main_yn,
     }
 }
 
+float rescale_cutoff(float p_value)
+{
+    return fasterpowf(p_value, 4.0f);
+}
+
+float rescale_resonance(float p_value)
+{
+    return fasterpowf(p_value, 1.2f);
+}
+
 void MODFX_PARAM(uint8_t index, int32_t value)
 {
     const float valf = q31_to_f32(value);
     switch (index) {
     case 0:
-        s_param_cutoff = fasterpowf(valf, 1.4f);
+        s_param_cutoff = rescale_cutoff(valf);
         break;
     case 1:
-        s_param_resonance = valf;
+        s_param_resonance = rescale_resonance(valf);
         break;
     default:
         break;

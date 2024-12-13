@@ -9,6 +9,9 @@
         "version" : "1.0-0",
         "name" : "HP303",
         "num_param" : 2,
-        "params" : []
+        "params" : [
+            ["Cutoff", 0, 100, "%"],
+            ["Resonance", 0, 100, "%"]
+        ]
     }
 }

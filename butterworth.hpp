@@ -15,7 +15,7 @@ typedef struct {
     float b2;
 } NormalCoefficients;
 
-template <int kChannels>
+template <int k_channels>
 class Butterworth
 {
     public:
@@ -31,21 +31,21 @@ class Butterworth
         /// @brief process the current frame samples for all channels
         /// @param x inputs samples
         /// @param y output samples
-        void process_frame(const NormalCoefficients& coeff, const float x[kChannels], float y[kChannels]);
+        void process_frame(const NormalCoefficients& coeff, const float x[k_channels], float y[k_channels]);
         
     protected:
         uint32_t sample_rate;
-        FeedbackLine state[kChannels];
+        FeedbackLine state[k_channels];
 };
 
-template <int kChannels>
-void Butterworth<kChannels>::init(const unsigned long& sample_rate)
+template <int k_channels>
+void Butterworth<k_channels>::init(const unsigned long& sample_rate)
 {
     this->sample_rate = sample_rate;
 }
 
-template <int kChannels>
-NormalCoefficients Butterworth<kChannels>::process_block(const float param_cutoff, const float param_resonance)
+template <int k_channels>
+NormalCoefficients Butterworth<k_channels>::process_block(const float param_cutoff, const float param_resonance)
 {
     // Convert parameters to filter coefficients
     const float cutoff = 20.f + param_cutoff * 9980.f;  // 20Hz to 10kHz
@@ -76,10 +76,10 @@ NormalCoefficients Butterworth<kChannels>::process_block(const float param_cutof
     return coeff;
 }
 
-template <int kChannels>
-void Butterworth<kChannels>::process_frame(const NormalCoefficients& coeff, const float x[kChannels], float y[kChannels])
+template <int k_channels>
+void Butterworth<k_channels>::process_frame(const NormalCoefficients& coeff, const float x[k_channels], float y[k_channels])
 {
-    for (uint32_t channel = 0; channel < kChannels; channel++)
+    for (uint32_t channel = 0; channel < k_channels; channel++)
     {
         // // TODO move this saturation to subclass Process each channel with resonance feedback
         // float input = x[channel] - fb_amount * tb303_tanh(state[channel].fb * 0.6f);
