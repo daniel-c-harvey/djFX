@@ -1,3 +1,5 @@
+#pragma once
+
 // TB-303 style tanh approximation for feedback saturation
 static inline float tb303_tanh(float x)
 {
@@ -6,3 +8,7 @@ static inline float tb303_tanh(float x)
     const float x2 = x * x;
     return x * (27.f + x2) / (27.f + 9.f * x2);
 }
+
+#ifndef param_val_to_f32 
+#define param_val_to_f32(val) ((uint16_t)val * 9.77517106549365e-004f)
+#endif

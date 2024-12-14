@@ -1,4 +1,5 @@
-#include "osc_api.h"
+#pragma once
+
 #include "util.hpp"
 
 template <int k_channels, typename TFeedbackLine, typename TCoefficients, typename TParams>
@@ -28,7 +29,7 @@ class Filter
         /// @param x inputs sample
         /// @param y output sample
         virtual void process_channel_frame(TFeedbackLine& state, const TCoefficients& coeff, 
-                                           const TParams& params, const float x, float y) = 0;
+                                           const TParams& params, const float& x, float& y) = 0;
 };
 
 struct Parameters 
@@ -74,8 +75,8 @@ class __Butterworth : Filter<k_channels, FeedbackLine, NormalCoefficients, TPara
         virtual void process_channel_frame(FeedbackLine& state, 
                                            const NormalCoefficients& coeff, 
                                            const TParams& params, 
-                                           const float x, 
-                                           float y) override;
+                                           const float& x, 
+                                           float& y) override;
 };
 
 template <int k_channels, typename TParams>
@@ -90,12 +91,13 @@ TParams __Butterworth<k_channels, TParams>::prepare_parameters(const float param
 {
     TParams params;
     
-    // P value to 20Hz to 10kHz range
-    params.cutoff = 20.f + param_cutoff * 7980.f;  
+    // Exponential frequency scaling
+    params.cutoff = fasterpowf(10.f, param_cutoff * 4.f); // scales exponentially to around 10kHz
 
     // Modified resonance response
-    params.res =  clip0f((param_cutoff - 0.55, 0.1f)) * param_resonance * 0.77f;  // Limit maximum resonance
-    params.Q = fasterpowf(params.res, 1.2f);  // Gentler exponential curve
+    params.res =  param_resonance;  // Limit maximum resonance //(clip0f(param_cutoff - 0.55f), 0.1f) *
+    // params.Q = fasterpowf(params.res, 1.2f);  // Gentler exponential curve
+    params.Q = 0.707f + params.res * 5.f; // Base Q of 0.707 (Butterworth) plus resonance
 
     return params;
 }
@@ -144,8 +146,8 @@ template <int k_channels, typename TParams>
 void __Butterworth<k_channels, TParams>::process_channel_frame(FeedbackLine& state, 
                                                                const NormalCoefficients& coeff,
                                                                const TParams& params, 
-                                                               const float x, 
-                                                               float y)
+                                                               const float& x, 
+                                                               float& y)
 {
     float input = x;
 
@@ -182,8 +184,8 @@ class __CompensatedButterworth : public __Butterworth<k_channels, TParams>
         virtual void process_channel_frame(FeedbackLine& state, 
                                            const NormalCoefficients& coeff, 
                                            const TParams& params, 
-                                           const float x, 
-                                           float y) override;
+                                           const float& x, 
+                                           float& y) override;
 };
 
 template <int k_channels, typename TParams>
@@ -193,7 +195,7 @@ TParams __CompensatedButterworth<k_channels, TParams>::prepare_parameters(const 
     TParams params = __Butterworth<k_channels, TParams>::prepare_parameters(param_cutoff, param_resonance);
 
     // Reduced feedback with compensation for volume loss
-    params.fb_amount = params.res * 1.2f;
+    params.fb_amount = params.res * 0.2f;
     
     // Volume compensation increases with resonance
     params.vol_comp = 1.f + (params.fb_amount); 
@@ -205,8 +207,8 @@ template <int k_channels, typename TParams>
 void __CompensatedButterworth<k_channels, TParams>::process_channel_frame(FeedbackLine &state, 
                                                                           const NormalCoefficients &coeff, 
                                                                           const TParams &params, 
-                                                                          const float x, 
-                                                                          float y)
+                                                                          const float& x, 
+                                                                          float& y)
 {
     __Butterworth<k_channels, TParams>::process_channel_frame(state, coeff, params, x, y);
     y *= params.vol_comp;
@@ -230,8 +232,8 @@ class __SaturatedButterworth : public __CompensatedButterworth<k_channels, TPara
         void process_channel_frame(FeedbackLine& state, 
                                    const NormalCoefficients& coeff, 
                                    const TParams& params, 
-                                   const float x, 
-                                   float y) override;
+                                   const float& x, 
+                                   float& y) override;
 };
 
 template <int k_channels, typename TParams>
@@ -241,7 +243,7 @@ TParams __SaturatedButterworth<k_channels, TParams>::prepare_parameters(const fl
     TParams params = __CompensatedButterworth<k_channels, TParams>::prepare_parameters(param_cutoff, param_resonance);
 
    // drive based on resonance
-    params.drive = 1.f + params.res * 1.4f;
+    params.drive = 1.f;// + params.res * 1.1f;
 
     return params;
 }
@@ -250,16 +252,16 @@ template <int k_channels, typename TParams>
 void __SaturatedButterworth<k_channels, TParams>::process_channel_frame(FeedbackLine &state, 
                                                                       const NormalCoefficients &coeff, 
                                                                       const TParams &params, 
-                                                                      const float x, 
-                                                                      float y)
+                                                                      const float& x, 
+                                                                      float& y)
 {
     // Process each channel with resonance feedback
     float input = x - params.fb_amount * tb303_tanh(state.fb * 0.6f);
     
-    __CompensatedButterworth<k_channels, TParams>::process_channel_frame(state, coeff, params, x, y);
+    __CompensatedButterworth<k_channels, TParams>::process_channel_frame(state, coeff, params, input, y);
 
     // Apply saturation with drive that increases less with resonance
-        y = tb303_tanh(y * params.drive) * (1.f / params.drive);
+    y = tb303_tanh(y * params.drive) * (1.f / params.drive);
 }
 
 template <int k_channels>
