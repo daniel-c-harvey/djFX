@@ -92,12 +92,11 @@ TParams __Butterworth<k_channels, TParams>::prepare_parameters(const float param
     TParams params;
     
     // Exponential frequency scaling
-    params.cutoff = fasterpowf(10.f, param_cutoff * 4.f); // scales exponentially to around 10kHz
+    params.cutoff = fasterpowf(10.f, param_cutoff * 4.30061f) + 19; // scales exponentially to around 10kHz
 
-    // Modified resonance response
-    params.res =  param_resonance;  // Limit maximum resonance //(clip0f(param_cutoff - 0.55f), 0.1f) *
-    // params.Q = fasterpowf(params.res, 1.2f);  // Gentler exponential curve
-    params.Q = 0.707f + params.res * 5.f; // Base Q of 0.707 (Butterworth) plus resonance
+    // Resonance response
+    params.res = param_resonance;
+    params.Q = 0.707f + params.res * 10.f; // Base Q of 0.707 (Butterworth) plus resonance
 
     return params;
 }
@@ -195,7 +194,7 @@ TParams __CompensatedButterworth<k_channels, TParams>::prepare_parameters(const 
     TParams params = __Butterworth<k_channels, TParams>::prepare_parameters(param_cutoff, param_resonance);
 
     // Reduced feedback with compensation for volume loss
-    params.fb_amount = params.res * 0.2f;
+    params.fb_amount = params.res * 0.17f;
     
     // Volume compensation increases with resonance
     params.vol_comp = 1.f + (params.fb_amount); 
@@ -256,7 +255,7 @@ void __SaturatedButterworth<k_channels, TParams>::process_channel_frame(Feedback
                                                                       float& y)
 {
     // Process each channel with resonance feedback
-    float input = x - params.fb_amount * tb303_tanh(state.fb * 0.6f);
+    float input = x - params.fb_amount * tb303_tanh(state.fb * 0.9f);
     
     __CompensatedButterworth<k_channels, TParams>::process_channel_frame(state, coeff, params, input, y);
 

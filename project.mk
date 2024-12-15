@@ -2,11 +2,11 @@
 # Project Customization
 # #############################################################################
 
-PROJECT = HP305
+PROJECT = HP303
 
 UCSRC = 
 
-UCXXSRC = hp303.cpp
+UCXXSRC = hp303.cpp ui.cpp
 
 UINCDIR =
 
