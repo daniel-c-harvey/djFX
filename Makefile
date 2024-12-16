@@ -57,7 +57,7 @@ DADEFS := -D$(MCU_MODEL) -DCORTEX_USE_FPU=TRUE -DARM_MATH_CM4
 DDEFS := -D$(MCU_MODEL) -DCORTEX_USE_FPU=TRUE -DARM_MATH_CM4 -D__FPU_PRESENT
 
 COPT := -std=c11 -mstructure-size-boundary=8
-CXXOPT := -std=c++11 -fno-rtti -fno-exceptions -fno-non-call-exceptions
+CXXOPT := -std=c++17 -fno-rtti -fno-exceptions -fno-non-call-exceptions
 
 LDOPT := -Xlinker --just-symbols=$(LDDIR)/main_api.syms
 
