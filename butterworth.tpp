@@ -35,11 +35,11 @@ void FilterDecorator<k_channels, TFeedbackLine, TCoefficients, TUIParams, TFilte
 }
 
 template <int k_channels, typename TUIParams>
-ButterworthHP<k_channels, TUIParams>::ButterworthHP(const unsigned long& p_sample_rate, ButterworthParameters *p_params)
+Butterworth<k_channels, TUIParams>::Butterworth(const unsigned long& p_sample_rate, ButterworthParameters *p_params)
 : Filter<k_channels, FeedbackLine, NormalCoefficients, TUIParams, ButterworthParameters>(p_params), sample_rate(p_sample_rate) {}
 
 template <int k_channels, typename TUIParams>
-void ButterworthHP<k_channels, TUIParams>::prepare_parameters(const TUIParams& params)
+void Butterworth<k_channels, TUIParams>::prepare_parameters(const TUIParams& params)
 {
     // Exponential frequency scaling
     this->params->cutoff = fasterpowf(10.f, params.p_cutoff * 4.30061f) + 19;
@@ -52,10 +52,41 @@ void ButterworthHP<k_channels, TUIParams>::prepare_parameters(const TUIParams& p
 }
 
 template <int k_channels, typename TUIParams>
+void Butterworth<k_channels, TUIParams>::process_frame(const NormalCoefficients& coeff, 
+                                              const float x[k_channels], 
+                                              float y[k_channels])
+{
+    for (uint16_t channel = 0; channel < k_channels; channel++)
+    {
+        process_channel_frame(state[channel], coeff, x[channel], y[channel]);
+    }
+}
+
+template <int k_channels, typename TUIParams>
+void Butterworth<k_channels, TUIParams>::process_channel_frame(FeedbackLine& state,
+                                                               const NormalCoefficients& coeff,
+                                                               const float& x, 
+                                                               float& y)
+{
+    this->filter(state, coeff, x, y);
+    
+    // Update feedback state
+    state.x[1] = state.x[0];
+    state.x[0] = x;
+    state.y[1] = state.y[0];
+    state.y[0] = y;
+    state.fb = y;
+}
+
+template <int k_channels, typename TUIParams>
+ButterworthHP<k_channels, TUIParams>::ButterworthHP(const unsigned long& p_sample_rate, ButterworthParameters *p_params)
+: Butterworth<k_channels, TUIParams>(p_sample_rate, p_params) {}
+
+template <int k_channels, typename TUIParams>
 NormalCoefficients ButterworthHP<k_channels, TUIParams>::prepare_coefficients()
 {
     // Convert parameters to filter coefficients
-    const float w0 = this->params->cutoff / sample_rate;
+    const float w0 = this->params->cutoff / this->sample_rate;
     const float cosw0 = osc_cosf(w0);
     
     const float alpha = osc_sinf(w0)/(2.f * this->params->Q);
@@ -80,36 +111,11 @@ NormalCoefficients ButterworthHP<k_channels, TUIParams>::prepare_coefficients()
 }
 
 template <int k_channels, typename TUIParams>
-void ButterworthHP<k_channels, TUIParams>::process_frame(const NormalCoefficients& coeff, 
-                                              const float x[k_channels], 
-                                              float y[k_channels])
+void ButterworthHP<k_channels, TUIParams>::filter(FeedbackLine& state, const NormalCoefficients &coeff, const float &x, float &y)
 {
-    for (uint16_t channel = 0; channel < k_channels; channel++)
-    {
-        process_channel_frame(state[channel], coeff, x[channel], y[channel]);
-    }
-}
-
-template <int k_channels, typename TUIParams>
-void ButterworthHP<k_channels, TUIParams>::process_channel_frame(FeedbackLine& state, 
-                                                      const NormalCoefficients& coeff,
-                                                      const float& x, 
-                                                      float& y)
-{
-    float input = x;
-
     // Filter
-    float yn = coeff.b0 * input + coeff.b1 * state.x[0] + coeff.b2 * state.x[1]
+    y = coeff.b0 * x + coeff.b1 * state.x[0] + coeff.b2 * state.x[1]
                 - coeff.a1 * state.y[0] - coeff.a2 * state.y[1];
-    
-    // Update feedback state
-    state.x[1] = state.x[0];
-    state.x[0] = input;
-    state.y[1] = state.y[0];
-    state.y[0] = yn;
-    state.fb = yn;
-
-    y = yn;
 }
 
 template <int k_channels, typename TUIParams>
@@ -122,19 +128,13 @@ void Compensated<k_channels, TUIParams>::prepare_parameters(const TUIParams& par
     
     // Volume compensation increases with resonance
     this->params->vol_comp = 1.f + (this->params->fb_amount);
-}
-// template <int k_channels, typename TUIParams>
-// void Compensated<k_channels, TUIParams>::process_frame(const NormalCoefficients& coeff, const float x[k_channels], float y[k_channels])
-// {
-//     FilterDecorator<k_channels, FeedbackLine, NormalCoefficients, TUIParams, CompensatedParameters>::process_frame(coeff, x, y);
-// }
-    
+}    
 
 template <int k_channels, typename TUIParams>
 void Compensated<k_channels, TUIParams>::process_channel_frame(FeedbackLine &state, 
-                                                    const NormalCoefficients &coeff,
-                                                    const float& x, 
-                                                    float& y)
+                                                               const NormalCoefficients &coeff,
+                                                               const float& x, 
+                                                               float& y)
 {
     FilterDecorator<k_channels, FeedbackLine, NormalCoefficients, TUIParams, CompensatedParameters>::process_channel_frame(state, coeff, x, y);
     y *= this->params->vol_comp;
@@ -149,15 +149,6 @@ void Saturated<k_channels, TUIParams>::prepare_parameters(const TUIParams& param
     this->params->drive = 1.f;// + params.res * 1.1f;
 }
 
-// template <int k_channels, typename TUIParams>
-// void Saturated<k_channels, TUIParams>::process_frame(const NormalCoefficients &coeff, const float x[k_channels], float y[k_channels])
-// {
-//       // drive based on resonance
-//     this->params->drive = 1.f;// + params.res * 1.1f;
-
-//     FilterDecorator<k_channels, FeedbackLine, NormalCoefficients, TUIParams, SaturatedParameters>::process_frame(coeff, x, y);
-// }
-
 template <int k_channels, typename TUIParams>
 void Saturated<k_channels, TUIParams>::process_channel_frame(FeedbackLine &state, const NormalCoefficients &coeff, const float &x, float &y)
 {
@@ -169,19 +160,3 @@ void Saturated<k_channels, TUIParams>::process_channel_frame(FeedbackLine &state
     // Apply saturation with drive that increases less with resonance
     y = tb303_tanh(y * this->params->drive) * (1.f / this->params->drive);
 }
-
-// template <int k_channels>
-// void Saturated<k_channels>::process_channel_frame(FeedbackLine &state, 
-//                                                   const NormalCoefficients &coeff, 
-//                                                   const SaturatedParameters &params, 
-//                                                   const float& x, 
-//                                                   float& y)
-// {
-//     // Process each channel with resonance feedback
-//     float input = x - params.fb_amount * tb303_tanh(state.fb * 0.9f);
-    
-//     FilterDecorator<k_channels, FeedbackLine, NormalCoefficients, SaturatedParameters>::process_channel_frame(state, coeff, params, input, y);
-
-//     // Apply saturation with drive that increases less with resonance
-//     y = tb303_tanh(y * params.drive) * (1.f / params.drive);
-// }

@@ -75,14 +75,14 @@ typedef struct {
 } FeedbackLine;
 
 template <int k_channels, typename TUIParams>
-class ButterworthHP : public Filter<k_channels, FeedbackLine, NormalCoefficients, TUIParams, ButterworthParameters>
+class Butterworth : public Filter<k_channels, FeedbackLine, NormalCoefficients, TUIParams, ButterworthParameters>
 {
     public:
-        ButterworthHP(const unsigned long& sample_rate, ButterworthParameters *params);
+        Butterworth(const unsigned long& sample_rate, ButterworthParameters *params);
 
         void prepare_parameters(const TUIParams& params) override;
 
-        NormalCoefficients prepare_coefficients() override;
+        // virtual NormalCoefficients prepare_coefficients() = 0;
         
         void process_frame(const NormalCoefficients& coeff, 
                            const float x[k_channels], 
@@ -91,35 +91,58 @@ class ButterworthHP : public Filter<k_channels, FeedbackLine, NormalCoefficients
         uint32_t sample_rate;
         FeedbackLine state[k_channels];
 
-
         void process_channel_frame(FeedbackLine& state, 
                                    const NormalCoefficients& coeff, 
                                    const float& x, 
                                    float& y) override;
+
+        virtual void filter(FeedbackLine& state, 
+                            const NormalCoefficients& coeff, 
+                            const float& x, 
+                            float& y) = 0;
 };
 
-// template <int k_channels>
-// class Butterworth : public ButterworthHP<k_channels, Parameters> {};
+template <int k_channels, typename TUIParams>
+class ButterworthHP : public Butterworth<k_channels, TUIParams>
+{
+    public:
+        ButterworthHP(const unsigned long& sample_rate, ButterworthParameters *params);
+
+        NormalCoefficients prepare_coefficients() override;
+        
+    protected:
+        void filter(FeedbackLine& state, const NormalCoefficients& coeff, const float& x, float& y) override;
+};
+
+// template <int k_channels, typename TUIParams>
+// class ButterworthLP : public Butterworth<k_channels, TUIParams>
+// {
+//     public:
+//         ButterworthLP(const unsigned long& sample_rate, ButterworthParameters *params);
+
+//         void prepare_parameters(const TUIParams& params) override;
+
+//         NormalCoefficients prepare_coefficients() override;
+        
+//         // void process_frame(const NormalCoefficients& coeff, 
+//         //                    const float x[k_channels], 
+//         //                    float y[k_channels]) override;
+//     protected:
+//         uint32_t sample_rate;
+//         FeedbackLine state[k_channels];
+
+
+//         // void process_channel_frame(FeedbackLine& state, 
+//         //                            const NormalCoefficients& coeff, 
+//         //                            const float& x, 
+//         //                            float& y) override;
+// };
 
 struct CompensatedParameters : public ButterworthParameters
 {
     float vol_comp; // Compensate for resonance-induced volume loss
     float fb_amount; // feedback based on resonance
 };
-
-// template <int k_channels, typename TFilterParams>
-// class __CompensatedButterworth : public ButterworthHP<k_channels, TFilterParams> 
-// {
-//     public:
-//         virtual TFilterParams prepare_parameters(const float param_cutoff, 
-//                                            const float param_resonance) override;
-//     protected:
-//         virtual void process_channel_frame(FeedbackLine& state, 
-//                                            const NormalCoefficients& coeff, 
-//                                            const TFilterParams& params, 
-//                                            const float& x, 
-//                                            float& y) override;
-// };
 
 template <int k_channels, typename TUIParams>
 class Compensated : public FilterDecorator<k_channels, FeedbackLine, NormalCoefficients, TUIParams, CompensatedParameters> 
@@ -130,35 +153,17 @@ class Compensated : public FilterDecorator<k_channels, FeedbackLine, NormalCoeff
 
         void prepare_parameters(const TUIParams& params) override;
 
-        // void process_frame(const NormalCoefficients& coeff, const float x[k_channels], float y[k_channels]) override;
-
     protected:
-        void process_channel_frame(FeedbackLine& state, 
+        void process_channel_frame(FeedbackLine& state,
                                    const NormalCoefficients& coeff,
                                    const float& x, 
                                    float& y) override;
 };
 
-// template <int k_channels>
-// class CompensatedButterworth : public __CompensatedButterworth<k_channels, CompensatedParameters> {};
-
 struct SaturatedParameters : public CompensatedParameters
 {
     float drive;
 };
-
-// template <int k_channels, typename TFilterParams>
-// class __SaturatedButterworth : public __CompensatedButterworth<k_channels, TFilterParams>
-// {
-//     public:
-//         void process_frame(const NormalCoefficients& coeff, const float x[k_channels], float y[k_channels]) override;
-
-//     protected:
-//         void process_channel_frame(FeedbackLine& state, 
-//                                    const NormalCoefficients& coeff, 
-//                                    const float& x, 
-//                                    float& y) override;
-// };
 
 template <int k_channels, typename TUIParams>
 class Saturated : public FilterDecorator<k_channels, FeedbackLine, NormalCoefficients, TUIParams, SaturatedParameters> 
@@ -169,16 +174,11 @@ class Saturated : public FilterDecorator<k_channels, FeedbackLine, NormalCoeffic
 
         void prepare_parameters(const TUIParams& params) override;
 
-        // void process_frame(const NormalCoefficients& coeff, const float x[k_channels], float y[k_channels]) override;
-
     protected:
-        void process_channel_frame(FeedbackLine& state, 
+        void process_channel_frame(FeedbackLine& state,
                                    const NormalCoefficients& coeff,
                                    const float& x, 
                                    float& y) override;
 };
-
-// template <int k_channels>
-// class SaturatedButterworth : public __SaturatedButterworth<k_channels, SaturatedParameters> {};
 
 #include "butterworth.tpp"
