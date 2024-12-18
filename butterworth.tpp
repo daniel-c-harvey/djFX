@@ -81,6 +81,14 @@ void Butterworth<k_channels, TUIParams>::process_channel_frame(FeedbackLine& sta
 }
 
 template <int k_channels, typename TUIParams>
+void Butterworth<k_channels, TUIParams>::filter(FeedbackLine &state, const NormalCoefficients &coeff, const float &x, float &y)
+{
+    // Filter
+    y = coeff.b0 * x + coeff.b1 * state.x[0] + coeff.b2 * state.x[1]
+                - coeff.a1 * state.y[0] - coeff.a2 * state.y[1];
+}
+
+template <int k_channels, typename TUIParams>
 ButterworthHP<k_channels, TUIParams>::ButterworthHP(const unsigned long& p_sample_rate, ButterworthParameters *p_params)
 : Butterworth<k_channels, TUIParams>(p_sample_rate, p_params) {}
 
@@ -109,14 +117,6 @@ NormalCoefficients ButterworthHP<k_channels, TUIParams>::prepare_coefficients()
     };
 
     return coeff;
-}
-
-template <int k_channels, typename TUIParams>
-void ButterworthHP<k_channels, TUIParams>::filter(FeedbackLine& state, const NormalCoefficients &coeff, const float &x, float &y)
-{
-    // Filter
-    y = coeff.b0 * x + coeff.b1 * state.x[0] + coeff.b2 * state.x[1]
-                - coeff.a1 * state.y[0] - coeff.a2 * state.y[1];
 }
 
 template <int k_channels, typename TUIParams>
@@ -150,14 +150,6 @@ NormalCoefficients ButterworthLP<k_channels, TUIParams>::prepare_coefficients()
     };
 
     return coeff;
-}
-
-template <int k_channels, typename TUIParams>
-void ButterworthLP<k_channels, TUIParams>::filter(FeedbackLine& state, const NormalCoefficients &coeff, const float &x, float &y)
-{
-    // Filter
-    y = coeff.b0 * x + coeff.b1 * state.x[0] + coeff.b2 * state.x[1]
-                - coeff.a1 * state.y[0] - coeff.a2 * state.y[1];
 }
 
 template <int k_channels, typename TUIParams>

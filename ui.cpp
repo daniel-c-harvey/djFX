@@ -50,12 +50,12 @@ static inline float H_HP_reso(float x)
 
 static inline float H_LP_cutoff(float p_value)
 {
-    return (1.f - (fasterpowf(p_value, 1.8f))) * 0.4f + 0.6f;
+    return (1.f - (fasterpowf(p_value, 1.6f))) * 0.4f + 0.6f;
 }
 
 static inline float H_LP_reso(float x)
 {
-    return fasterpowf((1.f - osc_cosf(1.f - x)) / 2.f, 2.f) * 0.15f;
+    return fasterpowf((1.f - osc_cosf(1.f - x)) / 2.f, 2.f) * 0.22f;
 }
 
 void UserParameters::setHP(float p_value)

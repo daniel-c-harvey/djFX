@@ -97,7 +97,7 @@ class Butterworth : public Filter<k_channels, FeedbackLine, NormalCoefficients, 
         virtual void filter(FeedbackLine& state, 
                             const NormalCoefficients& coeff, 
                             const float& x, 
-                            float& y) = 0;
+                            float& y);
 };
 
 template <int k_channels, typename TUIParams>
@@ -107,9 +107,6 @@ class ButterworthHP : public Butterworth<k_channels, TUIParams>
         ButterworthHP(const unsigned long& sample_rate, ButterworthParameters *params);
 
         NormalCoefficients prepare_coefficients() override;
-        
-    protected:
-        void filter(FeedbackLine& state, const NormalCoefficients& coeff, const float& x, float& y) override;
 };
 
 template <int k_channels, typename TUIParams>
@@ -119,9 +116,6 @@ class ButterworthLP : public Butterworth<k_channels, TUIParams>
         ButterworthLP(const unsigned long& sample_rate, ButterworthParameters *params);
 
         NormalCoefficients prepare_coefficients() override;
-        
-    protected:
-        void filter(FeedbackLine& state, const NormalCoefficients& coeff, const float& x, float& y) override;
 };
 
 struct CompensatedParameters : public ButterworthParameters
