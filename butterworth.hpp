@@ -81,8 +81,6 @@ class Butterworth : public Filter<k_channels, FeedbackLine, NormalCoefficients, 
         Butterworth(const unsigned long& sample_rate, ButterworthParameters *params);
 
         void prepare_parameters(const TUIParams& params) override;
-
-        // virtual NormalCoefficients prepare_coefficients() = 0;
         
         void process_frame(const NormalCoefficients& coeff, 
                            const float x[k_channels], 
@@ -114,29 +112,17 @@ class ButterworthHP : public Butterworth<k_channels, TUIParams>
         void filter(FeedbackLine& state, const NormalCoefficients& coeff, const float& x, float& y) override;
 };
 
-// template <int k_channels, typename TUIParams>
-// class ButterworthLP : public Butterworth<k_channels, TUIParams>
-// {
-//     public:
-//         ButterworthLP(const unsigned long& sample_rate, ButterworthParameters *params);
+template <int k_channels, typename TUIParams>
+class ButterworthLP : public Butterworth<k_channels, TUIParams>
+{
+    public:
+        ButterworthLP(const unsigned long& sample_rate, ButterworthParameters *params);
 
-//         void prepare_parameters(const TUIParams& params) override;
-
-//         NormalCoefficients prepare_coefficients() override;
+        NormalCoefficients prepare_coefficients() override;
         
-//         // void process_frame(const NormalCoefficients& coeff, 
-//         //                    const float x[k_channels], 
-//         //                    float y[k_channels]) override;
-//     protected:
-//         uint32_t sample_rate;
-//         FeedbackLine state[k_channels];
-
-
-//         // void process_channel_frame(FeedbackLine& state, 
-//         //                            const NormalCoefficients& coeff, 
-//         //                            const float& x, 
-//         //                            float& y) override;
-// };
+    protected:
+        void filter(FeedbackLine& state, const NormalCoefficients& coeff, const float& x, float& y) override;
+};
 
 struct CompensatedParameters : public ButterworthParameters
 {

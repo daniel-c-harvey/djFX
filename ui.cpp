@@ -3,14 +3,14 @@
 
 /** CONSTANTS */
 
-static const float a1 = 8.f;
+static const float a1 = 2.f;
 static const float a2 = 0.8f;
-static const float b1 = 96.f;
+static const float b1 = 58.f;
 static const float b2 = 8.f;
 static const float c1 = 0.08125f;
 static const float c2 = 0.425f;
-static const float z1 = 0.42f;
-static const float z2 = 0.26f;
+static const float z1 = 0.36f;
+static const float z2 = 0.3f;
 
 static const uint8_t k_crossbands = 2;
 static const float bands[k_crossbands][4] = {
@@ -45,8 +45,8 @@ static float HP_resoH(float x)
 
 void UserParameters::setHP(float p_value)
 {
-    hp_params.p_cutoff = fasterpowf(p_value, 0.4f) * 0.8;
-    hp_params.p_resonance = HP_resoH(p_value) * 0.28f;
+    hp_params.p_cutoff = fasterpowf(p_value, 0.62f) * 0.8;
+    hp_params.p_resonance = HP_resoH(p_value) * 0.27f;
 }
 
 FilterParameters UserParameters::getHPParams()

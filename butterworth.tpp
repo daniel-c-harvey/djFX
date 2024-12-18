@@ -2,6 +2,8 @@
 
 #include "butterworth.hpp"
 
+static const float Qbase = 1.f / sqrtf(2.f);
+
 template <int k_channels, typename TFeedbackLine, typename TCoefficients, typename TUIParams, typename TFilterParams>
 inline Filter<k_channels, TFeedbackLine, TCoefficients, TUIParams, TFilterParams>::Filter(TFilterParams *p)
 : params(p) {}
@@ -42,13 +44,13 @@ template <int k_channels, typename TUIParams>
 void Butterworth<k_channels, TUIParams>::prepare_parameters(const TUIParams& params)
 {
     // Exponential frequency scaling
-    this->params->cutoff = fasterpowf(10.f, params.p_cutoff * 4.30061f) + 19;
+    this->params->cutoff = 20.f * fasterpowf(1000.f, params.p_cutoff);//fasterpowf(10.f, params.p_cutoff * 4.30061f) + 15.f;
 
     // Resonance response
     this->params->res = params.p_resonance;
 
     // Base Q of 0.707 (Butterworth) plus resonance
-    this->params->Q = 0.707f + this->params->res * 10.f; 
+    this->params->Q = Qbase + this->params->res * 10.f; 
 }
 
 template <int k_channels, typename TUIParams>
@@ -85,11 +87,10 @@ ButterworthHP<k_channels, TUIParams>::ButterworthHP(const unsigned long& p_sampl
 template <int k_channels, typename TUIParams>
 NormalCoefficients ButterworthHP<k_channels, TUIParams>::prepare_coefficients()
 {
-    // Convert parameters to filter coefficients
-    const float w0 = this->params->cutoff / this->sample_rate;
-    const float cosw0 = osc_cosf(w0);
-    
-    const float alpha = osc_sinf(w0)/(2.f * this->params->Q);
+    // Convert parameters to filter coefficients with prewarping
+    const float w0 = osc_tanpif(this->params->cutoff / this->sample_rate);
+    const float cosw0 = (1.0f - w0 * w0) / (1.0f + w0 * w0);
+    const float alpha = w0 / (1.0f + w0 * w0) / this->params->Q;
     
     // Calculate filter coefficients (highpass)
     const float a0 = 1.f + alpha;
@@ -124,7 +125,7 @@ void Compensated<k_channels, TUIParams>::prepare_parameters(const TUIParams& par
     FilterDecorator<k_channels, FeedbackLine, NormalCoefficients, TUIParams, CompensatedParameters>::prepare_parameters(params);
 
     // Reduced feedback with compensation for volume loss
-    this->params->fb_amount = this->params->res * 0.17f;
+    this->params->fb_amount = this->params->res * 0.24f;
     
     // Volume compensation increases with resonance
     this->params->vol_comp = 1.f + (this->params->fb_amount);
@@ -146,7 +147,7 @@ void Saturated<k_channels, TUIParams>::prepare_parameters(const TUIParams& param
     FilterDecorator<k_channels, FeedbackLine, NormalCoefficients, TUIParams, SaturatedParameters>::prepare_parameters(params);
 
    // drive based on resonance
-    this->params->drive = 1.f;// + params.res * 1.1f;
+    this->params->drive = 1.f + this->params->res * 10.f;
 }
 
 template <int k_channels, typename TUIParams>
