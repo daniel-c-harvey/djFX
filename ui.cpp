@@ -45,16 +45,11 @@ static float HP_resoH(float x)
 
 void UserParameters::setHP(float p_value)
 {
-    p_hp_cutoff = fasterpowf(p_value, 0.4f) * 0.8;
-    p_hp_resonance = HP_resoH(p_value) * 0.28f;
+    hp_params.p_cutoff = fasterpowf(p_value, 0.4f) * 0.8;
+    hp_params.p_resonance = HP_resoH(p_value) * 0.28f;
 }
 
-float UserParameters::getHPCutoff()
+FilterParameters UserParameters::getHPParams()
 {
-    return p_hp_cutoff;
-}
-
-float UserParameters::getHPResonance()
-{
-    return p_hp_resonance;
+    return hp_params;
 }

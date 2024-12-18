@@ -4,14 +4,12 @@
 #include "util.hpp"
 #include <memory>
 
-template <int k_channels, typename TFeedbackLine, typename TCoefficients>
+template <int k_channels, typename TFeedbackLine, typename TCoefficients, typename TUIParams>
 class FilterBase
 {
     public:        
-        // /// @brief Prepare the filter channels to process all frames in this block
-        // /// @param param_cutoff [0, 1]
-        // /// @param param_resonance [0, 1]
-        // virtual prepare_parameters(const float param_cutoff, const float param_resonance) = 0;
+        /// @brief Prepare the filter channels to process all frames in this block
+        virtual void prepare_parameters(const TUIParams& params) = 0;
 
         /// @brief Prepare the filter channels to process all frames in this block
         virtual TCoefficients prepare_coefficients() = 0;
@@ -27,28 +25,30 @@ class FilterBase
         virtual void process_channel_frame(TFeedbackLine& state, const TCoefficients& coeff, const float& x, float& y) = 0;
 };
 
-template <int k_channels, typename TFeedbackLine, typename TCoefficients, typename TParams>
-class Filter : public FilterBase<k_channels, TFeedbackLine, TCoefficients>
+template <int k_channels, typename TFeedbackLine, typename TCoefficients, typename TUIParams, typename TFilterParams>
+class Filter : public FilterBase<k_channels, TFeedbackLine, TCoefficients, TUIParams>
 {
     public:
-        explicit Filter(TParams *p);
+        explicit Filter(TFilterParams *p);
 
     protected:
-        TParams* params;
+        TFilterParams* params;
 };
 
-template <int k_channels, typename TFeedbackLine, typename TCoefficients, typename TParams>
-class FilterDecorator : public Filter<k_channels, TFeedbackLine, TCoefficients, TParams>
+template <int k_channels, typename TFeedbackLine, typename TCoefficients, typename TUIParams, typename TFilterParams>
+class FilterDecorator : public Filter<k_channels, TFeedbackLine, TCoefficients, TUIParams, TFilterParams>
 {
     public:
-        FilterDecorator(FilterBase<k_channels, TFeedbackLine, TCoefficients> *f, TParams *p);
+        FilterDecorator(FilterBase<k_channels, TFeedbackLine, TCoefficients, TUIParams> *f, TFilterParams *p);
+
+        void prepare_parameters(const TUIParams& params) override;
 
         TCoefficients prepare_coefficients() override;
 
         void process_frame(const TCoefficients& coeff, const float x[k_channels], float y[k_channels]) override;
 
     protected:
-        FilterBase<k_channels, TFeedbackLine, TCoefficients> *filter_ptr;
+        FilterBase<k_channels, TFeedbackLine, TCoefficients, TUIParams> *filter_ptr;
 
         void process_channel_frame(TFeedbackLine& state, const TCoefficients& coeff, const float& x, float& y) override;
 };
@@ -74,17 +74,17 @@ typedef struct {
     float fb;  // Feedback value for resonance
 } FeedbackLine;
 
-template <int k_channels>
-class ButterworthHP : public Filter<k_channels, FeedbackLine, NormalCoefficients, ButterworthParameters>
+template <int k_channels, typename TUIParams>
+class ButterworthHP : public Filter<k_channels, FeedbackLine, NormalCoefficients, TUIParams, ButterworthParameters>
 {
     public:
-        explicit ButterworthHP(const unsigned long& sample_rate, ButterworthParameters *params);
+        ButterworthHP(const unsigned long& sample_rate, ButterworthParameters *params);
 
-        // virtual void prepare_parameters(const float param_cutoff, 
-        //                                 const float param_resonance) override;
+        void prepare_parameters(const TUIParams& params) override;
+
         NormalCoefficients prepare_coefficients() override;
         
-        virtual void process_frame(const NormalCoefficients& coeff, 
+        void process_frame(const NormalCoefficients& coeff, 
                            const float x[k_channels], 
                            float y[k_channels]) override;
     protected:
@@ -92,7 +92,7 @@ class ButterworthHP : public Filter<k_channels, FeedbackLine, NormalCoefficients
         FeedbackLine state[k_channels];
 
 
-        virtual void process_channel_frame(FeedbackLine& state, 
+        void process_channel_frame(FeedbackLine& state, 
                                    const NormalCoefficients& coeff, 
                                    const float& x, 
                                    float& y) override;
@@ -107,28 +107,30 @@ struct CompensatedParameters : public ButterworthParameters
     float fb_amount; // feedback based on resonance
 };
 
-// template <int k_channels, typename TParams>
-// class __CompensatedButterworth : public ButterworthHP<k_channels, TParams> 
+// template <int k_channels, typename TFilterParams>
+// class __CompensatedButterworth : public ButterworthHP<k_channels, TFilterParams> 
 // {
 //     public:
-//         virtual TParams prepare_parameters(const float param_cutoff, 
+//         virtual TFilterParams prepare_parameters(const float param_cutoff, 
 //                                            const float param_resonance) override;
 //     protected:
 //         virtual void process_channel_frame(FeedbackLine& state, 
 //                                            const NormalCoefficients& coeff, 
-//                                            const TParams& params, 
+//                                            const TFilterParams& params, 
 //                                            const float& x, 
 //                                            float& y) override;
 // };
 
-template <int k_channels>
-class Compensated : public FilterDecorator<k_channels, FeedbackLine, NormalCoefficients, CompensatedParameters> 
+template <int k_channels, typename TUIParams>
+class Compensated : public FilterDecorator<k_channels, FeedbackLine, NormalCoefficients, TUIParams, CompensatedParameters> 
 {
     public:
-        explicit Compensated(FilterBase<k_channels, FeedbackLine, NormalCoefficients> *f, CompensatedParameters *p)
-        : FilterDecorator<k_channels, FeedbackLine, NormalCoefficients, CompensatedParameters>(f, p) {}
+        Compensated(FilterBase<k_channels, FeedbackLine, NormalCoefficients, TUIParams> *f, CompensatedParameters *p)
+        : FilterDecorator<k_channels, FeedbackLine, NormalCoefficients, TUIParams, CompensatedParameters>(f, p) {}
 
-        void process_frame(const NormalCoefficients& coeff, const float x[k_channels], float y[k_channels]) override;
+        void prepare_parameters(const TUIParams& params) override;
+
+        // void process_frame(const NormalCoefficients& coeff, const float x[k_channels], float y[k_channels]) override;
 
     protected:
         void process_channel_frame(FeedbackLine& state, 
@@ -145,36 +147,36 @@ struct SaturatedParameters : public CompensatedParameters
     float drive;
 };
 
-// template <int k_channels, typename TParams>
-// class __SaturatedButterworth : public __CompensatedButterworth<k_channels, TParams>
+// template <int k_channels, typename TFilterParams>
+// class __SaturatedButterworth : public __CompensatedButterworth<k_channels, TFilterParams>
 // {
 //     public:
-//         virtual TParams prepare_parameters(const float param_cutoff, 
-//                                            const float param_resonance) override;
+//         void process_frame(const NormalCoefficients& coeff, const float x[k_channels], float y[k_channels]) override;
+
 //     protected:
 //         void process_channel_frame(FeedbackLine& state, 
 //                                    const NormalCoefficients& coeff, 
-//                                    const TParams& params, 
 //                                    const float& x, 
 //                                    float& y) override;
 // };
 
-// template <int k_channels>
-// class Saturated : public FilterDecorator<k_channels, FeedbackLine, NormalCoefficients, SaturatedParameters> 
-// {
-//     public:
-//         explicit Saturated(std::unique_ptr<FilterBase<k_channels, FeedbackLine, NormalCoefficients>> f,
-//                            std::shared_ptr<SaturatedParameters> p)
-//         : FilterDecorator<k_channels, FeedbackLine, NormalCoefficients, SaturatedParameters>(std::move(f), p) {}
+template <int k_channels, typename TUIParams>
+class Saturated : public FilterDecorator<k_channels, FeedbackLine, NormalCoefficients, TUIParams, SaturatedParameters> 
+{
+    public:
+        Saturated(FilterBase<k_channels, FeedbackLine, NormalCoefficients, TUIParams> *f, SaturatedParameters *p)
+        : FilterDecorator<k_channels, FeedbackLine, NormalCoefficients, TUIParams, SaturatedParameters>(f, p) {}
 
-//         // SaturatedParameters prepare_parameters(const float param_cutoff, 
-//         //                                                const float param_resonance) override;
-//     protected:
-//         void process_channel_frame(FeedbackLine& state, 
-//                                    const NormalCoefficients& coeff,
-//                                    const float& x, 
-//                                    float& y) override;
-// };
+        void prepare_parameters(const TUIParams& params) override;
+
+        // void process_frame(const NormalCoefficients& coeff, const float x[k_channels], float y[k_channels]) override;
+
+    protected:
+        void process_channel_frame(FeedbackLine& state, 
+                                   const NormalCoefficients& coeff,
+                                   const float& x, 
+                                   float& y) override;
+};
 
 // template <int k_channels>
 // class SaturatedButterworth : public __SaturatedButterworth<k_channels, SaturatedParameters> {};

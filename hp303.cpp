@@ -7,27 +7,35 @@
 
 void MODFX_INIT(uint32_t platform, uint32_t api)
 {
-    uparams = UserParameters(); 
-    // filter = std::unique_ptr<Filter<2, FeedbackLine, NormalCoefficients, SaturatedParameters>>(
-    //             new Saturated<2>( 
-    //                 std::unique_ptr<Filter<2, FeedbackLine, NormalCoefficients, SaturatedParameters>>(
-    //                     new Compensated<2>(
-    //                         std::unique_ptr<Filter<2, FeedbackLine, NormalCoefficients, ButterworthParameters>>(
-    //                             new ButterworthHP<2>(k_samplerate)
-    //                         )
-    //                     )
-                    
-    //         );
-    }
+    // uparams = UserParameters();
+
+    // hp_butterworth_params = ButterworthParameters();
+    // hp_compensated_params = CompensatedParameters();
+    // hp_saturated_params = SaturatedParameters();
+
+    // hp_butterworth = ButterworthHP<2, FilterParameters>(k_samplerate, &hp_butterworth_params);
+    // hp_compensated = Compensated<2, FilterParameters>(&hp_butterworth, &hp_compensated_params);
+    // hp_saturated = Saturated<2, FilterParameters>(&hp_compensated, &hp_saturated_params);
+
+    // hp_filter = &hp_saturated;
+
+
+    // lp_butterworth_params = ButterworthParameters();
+    // lp_compensated_params = CompensatedParameters();
+    // lp_saturated_params = SaturatedParameters();
+
+    // lp_butterworth = ButterworthHP<2, FilterParameters>(k_samplerate, &lp_butterworth_params);
+    // lp_compensated = Compensated<2, FilterParameters>(&lp_butterworth, &lp_compensated_params);
+    // lp_saturated = Saturated<2, FilterParameters>(&lp_compensated, &lp_saturated_params);
+
+    // lp_filter = &lp_saturated;
+}
 
 void MODFX_PROCESS(const float *main_xn, float *main_yn,
                    const float *sub_xn,  float *sub_yn,
                    uint32_t frames)
 {
-    // SaturatedParameters params = hp_filter->prepare_parameters(uparams.getHPCutoff(), uparams.getHPResonance());
-    butterworth_params.cutoff = uparams.getHPCutoff();
-    butterworth_params.res = uparams.getHPResonance();
-
+    hp_filter->prepare_parameters(uparams.getHPParams());
     NormalCoefficients coeff = hp_filter->prepare_coefficients();
 
     for (uint32_t frame = 0; frame < frames; frame++)
@@ -35,6 +43,7 @@ void MODFX_PROCESS(const float *main_xn, float *main_yn,
         float x[2] = {main_xn[2 * frame], main_xn[2 * frame + 1]};
         float y[2];
         hp_filter->process_frame(coeff, x, y);
+
         main_yn[2 * frame] = y[0];
         main_yn[2 * frame + 1] = y[1];
     }
