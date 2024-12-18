@@ -20,6 +20,11 @@ static const float bands[k_crossbands][4] = {
 
 /** /CONSTANTS */
 
+static inline float H_HP_cutoff(float p_value)
+{
+    return fasterpowf(p_value, 0.62f) * 0.66f;
+}
+
 /// @brief Tunable logistic function (sigmoid)
 /// @param a slope
 /// @param b slope 2
@@ -31,7 +36,7 @@ static inline float HP_H(float x, float a, float b, float c, float z)
     return z * a / (a + fasterexpf(b * (c - x))) - 0.02f;
 }
 
-static float HP_resoH(float x)
+static inline float H_HP_reso(float x)
 {
     float acc = 0;
 
@@ -40,16 +45,37 @@ static float HP_resoH(float x)
         acc += HP_H(x, bands[band][0], bands[band][1], bands[band][2], bands[band][3]);
     }
 
-    return acc;
+    return acc * 0.27f;
+}
+
+static inline float H_LP_cutoff(float p_value)
+{
+    return (1.f - (fasterpowf(p_value, 1.8f))) * 0.4f + 0.6f;
+}
+
+static inline float H_LP_reso(float x)
+{
+    return fasterpowf((1.f - osc_cosf(1.f - x)) / 2.f, 2.f) * 0.15f;
 }
 
 void UserParameters::setHP(float p_value)
 {
-    hp_params.p_cutoff = fasterpowf(p_value, 0.62f) * 0.8;
-    hp_params.p_resonance = HP_resoH(p_value) * 0.27f;
+    hp_params.p_cutoff = H_HP_cutoff(p_value);
+    hp_params.p_resonance = H_HP_reso(p_value);
+}
+
+void UserParameters::setLP(float p_value)
+{
+    lp_params.p_cutoff = H_LP_cutoff(p_value);
+    lp_params.p_resonance = H_LP_reso(p_value);
 }
 
 FilterParameters UserParameters::getHPParams()
 {
     return hp_params;
+}
+
+FilterParameters UserParameters::getLPParams()
+{
+    return lp_params;
 }

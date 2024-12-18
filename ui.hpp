@@ -13,8 +13,7 @@ class UserParameters
         void setLP(float);
 
         FilterParameters getHPParams();
-        float getLPCutoff();
-        float getLPResonance();
+        FilterParameters getLPParams();
 
     protected:
         FilterParameters hp_params;

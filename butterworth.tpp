@@ -44,7 +44,7 @@ template <int k_channels, typename TUIParams>
 void Butterworth<k_channels, TUIParams>::prepare_parameters(const TUIParams& params)
 {
     // Exponential frequency scaling
-    this->params->cutoff = 20.f * fasterpowf(1000.f, params.p_cutoff);//fasterpowf(10.f, params.p_cutoff * 4.30061f) + 15.f;
+    this->params->cutoff = 22.f * fasterpowf(1000.f, params.p_cutoff);
 
     // Resonance response
     this->params->res = params.p_resonance;
@@ -113,6 +113,47 @@ NormalCoefficients ButterworthHP<k_channels, TUIParams>::prepare_coefficients()
 
 template <int k_channels, typename TUIParams>
 void ButterworthHP<k_channels, TUIParams>::filter(FeedbackLine& state, const NormalCoefficients &coeff, const float &x, float &y)
+{
+    // Filter
+    y = coeff.b0 * x + coeff.b1 * state.x[0] + coeff.b2 * state.x[1]
+                - coeff.a1 * state.y[0] - coeff.a2 * state.y[1];
+}
+
+template <int k_channels, typename TUIParams>
+ButterworthLP<k_channels, TUIParams>::ButterworthLP(const unsigned long& p_sample_rate, ButterworthParameters *p_params)
+: Butterworth<k_channels, TUIParams>(p_sample_rate, p_params) {}
+
+template <int k_channels, typename TUIParams>
+NormalCoefficients ButterworthLP<k_channels, TUIParams>::prepare_coefficients()
+{
+    // Convert parameters to filter coefficients with prewarping
+    const float w0 = osc_tanpif(this->params->cutoff / this->sample_rate);
+    const float cosw0 = (1.0f - w0 * w0) / (1.0f + w0 * w0);
+    const float alpha = 1.0f / (1.0f + w0 * w0) / this->params->Q;
+    
+    // // Calculate filter coefficients (lowpass)
+    const float a0 = 1.f + alpha;
+    const float a1 = -2.f * cosw0;
+    const float a2 = 1.f - alpha;
+    const float b0 = (1.f + cosw0) / 2.f;
+    const float b1 = (1.f + cosw0);
+    const float b2 = (1.f + cosw0) / 2.f;
+    
+    const float dc_gain = (b0 + b1 + b2) / (a0 + a1 + a2);
+    
+    NormalCoefficients coeff = {
+        .a1 = a1 / a0,
+        .a2 = a2 / a0,
+        .b0 = b0 / a0 / dc_gain,
+        .b1 = b1 / a0 / dc_gain,
+        .b2 = b2 / a0 / dc_gain
+    };
+
+    return coeff;
+}
+
+template <int k_channels, typename TUIParams>
+void ButterworthLP<k_channels, TUIParams>::filter(FeedbackLine& state, const NormalCoefficients &coeff, const float &x, float &y)
 {
     // Filter
     y = coeff.b0 * x + coeff.b1 * state.x[0] + coeff.b2 * state.x[1]
