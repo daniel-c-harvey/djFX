@@ -1,4 +1,3 @@
-// hp303.hpp
 #pragma once
 
 #include "usermodfx.h"

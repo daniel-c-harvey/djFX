@@ -6,9 +6,9 @@ PROJECT = DJFX
 
 UCSRC = 
 
-UCXXSRC = hp303.cpp ui.cpp
+UCXXSRC = src/djfx.cpp src/ui.cpp
 
-UINCDIR =
+UINCDIR = include
 
 UDEFS =
 

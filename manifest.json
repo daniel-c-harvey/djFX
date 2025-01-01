@@ -6,12 +6,12 @@
         "api" : "1.1-0",
         "dev_id" : 0,
         "prg_id" : 0,
-        "version" : "1.0-0",
+        "version" : "0.9-1",
         "name" : "DJFX",
         "num_param" : 2,
         "params" : [
-            ["Cutoff", 0, 100, "%"],
-            ["Resonance", 0, 100, "%"]
+            ["HighPass", 0, 100, "%"],
+            ["LowPass", 0, 100, "%"]
         ]
     }
 }

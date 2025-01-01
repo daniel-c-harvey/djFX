@@ -2,7 +2,7 @@
  * Title: HP303 - Resonant Highpass Filter
  * A resonant highpass filter with TB-303 style characteristics
  */
-#include "hp303.hpp"
+#include "djfx.hpp"
 #include "osc_api.h"
 
 void MODFX_INIT(uint32_t platform, uint32_t api)
