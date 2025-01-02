@@ -129,7 +129,14 @@ NormalCoefficients ButterworthLP<k_channels, TUIParams>::prepare_coefficients()
     // Convert parameters to filter coefficients with prewarping
     const float w0 = osc_tanpif(this->params->cutoff / this->sample_rate);
     const float cosw0 = (1.0f - w0 * w0) / (1.0f + w0 * w0);
-    const float alpha = 1.0f / (1.0f + w0 * w0) / this->params->Q;
+    const float alpha = 1.f / (1.0f + w0 * w0) / this->params->Q;
+    
+    // Split alpha calculation for different frequency regions
+    // const float alpha_res = w0 / (1.0f + w0 * w0) / this->params->Q;  // For resonance
+    // const float alpha_hf = 1.0f / (1.0f + w0 * w0) / this->params->Q; // For high freq stability
+    // const float blend = fminf(1.0f, this->params->cutoff / (0.4f * this->sample_rate));
+    // const float alpha = alpha_res * (1.0f - blend) + alpha_hf * blend;
+    
     
     // // Calculate filter coefficients (lowpass)
     const float a0 = 1.f + alpha;
@@ -139,21 +146,31 @@ NormalCoefficients ButterworthLP<k_channels, TUIParams>::prepare_coefficients()
     const float b1 = (1.f + cosw0);
     const float b2 = (1.f + cosw0) / 2.f;
     
-    const float dc_gain = (b0 + b1 + b2) / (a0 + a1 + a2);
-    
+    const float norm = w0 * w0;
+
     NormalCoefficients coeff = {
         .a1 = a1 / a0,
         .a2 = a2 / a0,
-        .b0 = b0 / a0 / dc_gain,
-        .b1 = b1 / a0 / dc_gain,
-        .b2 = b2 / a0 / dc_gain
+        .b0 = b0 * norm / a0,
+        .b1 = b1 * norm / a0,
+        .b2 = b2 * norm / a0
     };
 
     return coeff;
 }
 
 template <int k_channels, typename TUIParams>
-void Compensated<k_channels, TUIParams>::prepare_parameters(const TUIParams& params)
+void Compensated<k_channels, TUIParams>::process_channel_frame(FeedbackLine &state, 
+                                                                  const NormalCoefficients &coeff,
+                                                                  const float& x, 
+                                                                  float& y)
+{
+    FilterDecorator<k_channels, FeedbackLine, NormalCoefficients, TUIParams, CompensatedParameters>::process_channel_frame(state, coeff, x, y);
+    y *= this->params->vol_comp;
+}
+
+template <int k_channels, typename TUIParams>
+void ResCompensated<k_channels, TUIParams>::prepare_parameters(const TUIParams& params)
 {
     FilterDecorator<k_channels, FeedbackLine, NormalCoefficients, TUIParams, CompensatedParameters>::prepare_parameters(params);
 
@@ -165,14 +182,16 @@ void Compensated<k_channels, TUIParams>::prepare_parameters(const TUIParams& par
 }    
 
 template <int k_channels, typename TUIParams>
-void Compensated<k_channels, TUIParams>::process_channel_frame(FeedbackLine &state, 
-                                                               const NormalCoefficients &coeff,
-                                                               const float& x, 
-                                                               float& y)
+void FreqCompensated<k_channels, TUIParams>::prepare_parameters(const TUIParams& params)
 {
-    FilterDecorator<k_channels, FeedbackLine, NormalCoefficients, TUIParams, CompensatedParameters>::process_channel_frame(state, coeff, x, y);
-    y *= this->params->vol_comp;
-}
+    FilterDecorator<k_channels, FeedbackLine, NormalCoefficients, TUIParams, CompensatedParameters>::prepare_parameters(params);
+
+    // Reduced feedback with compensation for volume loss
+    this->params->fb_amount = params.p_cutoff * 0.24f;
+    
+    // Volume compensation increases with resonance
+    this->params->vol_comp = 1.f;// + (this->params->fb_amount);
+}    
 
 template <int k_channels, typename TUIParams>
 void Saturated<k_channels, TUIParams>::prepare_parameters(const TUIParams& params)

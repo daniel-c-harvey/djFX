@@ -12,7 +12,7 @@ static CompensatedParameters hp_compensated_params = CompensatedParameters();
 static SaturatedParameters hp_saturated_params = SaturatedParameters();
 
 static ButterworthHP<2, FilterParameters> hp_butterworth = ButterworthHP<2, FilterParameters>(k_samplerate, &hp_butterworth_params);
-static Compensated<2, FilterParameters> hp_compensated = Compensated<2, FilterParameters>(&hp_butterworth, &hp_compensated_params);
+static ResCompensated<2, FilterParameters> hp_compensated = ResCompensated<2, FilterParameters>(&hp_butterworth, &hp_compensated_params);
 static Saturated<2, FilterParameters> hp_saturated = Saturated<2, FilterParameters>(&hp_compensated, &hp_saturated_params);
 static FilterBase<2, FeedbackLine, NormalCoefficients, FilterParameters>* hp_filter = &hp_saturated;
 
@@ -21,7 +21,7 @@ static CompensatedParameters lp_compensated_params = CompensatedParameters();
 static SaturatedParameters lp_saturated_params = SaturatedParameters();
 
 static ButterworthLP<2, FilterParameters> lp_butterworth = ButterworthLP<2, FilterParameters>(k_samplerate, &lp_butterworth_params);
-static Compensated<2, FilterParameters> lp_compensated = Compensated<2, FilterParameters>(&lp_butterworth, &lp_compensated_params);
+static FreqCompensated<2, FilterParameters> lp_compensated = FreqCompensated<2, FilterParameters>(&lp_butterworth, &lp_compensated_params);
 static Saturated<2, FilterParameters> lp_saturated = Saturated<2, FilterParameters>(&lp_compensated, &lp_saturated_params);
 static FilterBase<2, FeedbackLine, NormalCoefficients, FilterParameters>* lp_filter = &lp_saturated;
 

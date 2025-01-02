@@ -27,8 +27,8 @@ struct FilterManager {
         return filter;
     }
     
-    static Compensated<2, FilterParameters>& get_compensated() {
-        static Compensated<2, FilterParameters> filter(&get_butterworth(), &get_compensated_params());
+    static ResCompensated<2, FilterParameters>& get_compensated() {
+        static ResCompensated<2, FilterParameters> filter(&get_butterworth(), &get_compensated_params());
         return filter;
     }
     

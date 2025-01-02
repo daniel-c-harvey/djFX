@@ -121,7 +121,7 @@ class ButterworthLP : public Butterworth<k_channels, TUIParams>
 struct CompensatedParameters : public ButterworthParameters
 {
     float vol_comp; // Compensate for resonance-induced volume loss
-    float fb_amount; // feedback based on resonance
+    float fb_amount; // feedback
 };
 
 template <int k_channels, typename TUIParams>
@@ -131,13 +131,33 @@ class Compensated : public FilterDecorator<k_channels, FeedbackLine, NormalCoeff
         Compensated(FilterBase<k_channels, FeedbackLine, NormalCoefficients, TUIParams> *f, CompensatedParameters *p)
         : FilterDecorator<k_channels, FeedbackLine, NormalCoefficients, TUIParams, CompensatedParameters>(f, p) {}
 
-        void prepare_parameters(const TUIParams& params) override;
+        void prepare_parameters(const TUIParams& params) override = 0;
 
     protected:
         void process_channel_frame(FeedbackLine& state,
                                    const NormalCoefficients& coeff,
                                    const float& x, 
                                    float& y) override;
+};
+
+template <int k_channels, typename TUIParams>
+class ResCompensated : public Compensated<k_channels, TUIParams> 
+{
+    public:
+        ResCompensated(FilterBase<k_channels, FeedbackLine, NormalCoefficients, TUIParams> *f, CompensatedParameters *p)
+        : Compensated<k_channels, TUIParams>(f, p) {}
+
+        void prepare_parameters(const TUIParams& params) override;
+};
+
+template <int k_channels, typename TUIParams>
+class FreqCompensated : public Compensated<k_channels, TUIParams> 
+{
+    public:
+        FreqCompensated(FilterBase<k_channels, FeedbackLine, NormalCoefficients, TUIParams> *f, CompensatedParameters *p)
+        : Compensated<k_channels, TUIParams>(f, p) {}
+
+        void prepare_parameters(const TUIParams& params) override;
 };
 
 struct SaturatedParameters : public CompensatedParameters

@@ -50,7 +50,7 @@ static inline float H_HP_reso(float x)
 
 static inline float H_LP_cutoff(float p_value)
 {
-    return (1.f - (fasterpowf(p_value, 1.6f))) * 0.4f + 0.6f;
+    return (1.f - (fasterpowf(p_value, 1.35f))) * 0.35f + 0.65f;
 }
 
 static inline float H_LP_reso(float x)
